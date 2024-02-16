@@ -1,6 +1,9 @@
 package netfilter
 
 import (
+	"fmt"
+	"log"
+	"net"
 	"testing"
 	"time"
 )
@@ -19,6 +22,8 @@ func serve(t *testing.T, queueNum uint16) {
 	for true {
 		select {
 		case p := <-packets:
+			fmt.Printf("packet:%v\n", p)
+			fmt.Printf("net index:%v\n", p.Idx)
 			t.Logf("Accepting %s", p.Packet)
 			p.SetVerdict(NF_ACCEPT)
 		case <-stopCh:
@@ -30,9 +35,17 @@ func serve(t *testing.T, queueNum uint16) {
 
 // very dumb test, but enough for testing golang/go#14210
 func TestNetfilter(t *testing.T) {
+	ns, err := net.Interfaces()
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, n := range ns {
+		log.Printf("idx:%v,name:%v", n.Index, n.Name)
+	}
+
 	queueNum := 42
 	go serve(t, uint16(queueNum))
-	wait := 3 * time.Second
+	wait := 30 * time.Second
 	t.Logf("Sleeping for %s", wait)
 	time.Sleep(wait)
 	close(stopCh)
